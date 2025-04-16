@@ -25,7 +25,7 @@ namespace ChatBot
             string userName = Console.ReadLine();
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"\nHi There, {userName}! I am your Cybersecurity Awareness Assistant.");
+            Console.WriteLine($"\nHi There, {userName}! I am your Cybersecurity Awareness Assistant!!!.");
             Console.ResetColor();
 
             // Display initial help message
