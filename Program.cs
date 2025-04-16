@@ -45,7 +45,8 @@ namespace ChatBot
                 {
                     continueChat = false;
                     Console.ForegroundColor = ConsoleColor.Magenta;
-                    Console.WriteLine("\nGoodbye! stay safe online!");
+                    Console.WriteLine("\nGoodbye! Make sure you stay safe online!");
+                    Console.WriteLine("\nThank you for using ChatBot");
                     Console.ResetColor();
                     continue;
                 }
