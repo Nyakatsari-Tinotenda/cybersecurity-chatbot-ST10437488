@@ -8,6 +8,8 @@ namespace ChatBot
     {
         static void Main(string[] args)
         {
+            // Play voice greeting
+            PlayVoiceGreeting();
 
             // Display ASCII art
             DisplayAsciiArt();
@@ -100,7 +102,24 @@ namespace ChatBot
             Console.ResetColor();
         }
 
-    
+        static void PlayVoiceGreeting()
+        {
+            try
+            {
+                
+               SoundPlayer player = new SoundPlayer("greeting.wav");
+
+                
+                player.Play();
+                Thread.Sleep(2000); // Wait for greeting to play
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Couldn't play voice greeting: " + ex.Message);
+                Console.WriteLine("Make sure 'greeting.wav' exists in the application folder.");
+            }
+        }
+
         static void DisplayAsciiArt()
         {
             Console.ForegroundColor = ConsoleColor.Blue;
