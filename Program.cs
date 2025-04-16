@@ -21,11 +21,11 @@ namespace ChatBot
             Console.WriteLine("╚════════════════════════════════════════╝\n");
             Console.ResetColor();
 
-            Console.Write("Please enter your name: ");
+            Console.Write("Please enter your first name: ");
             string userName = Console.ReadLine();
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"\nHello, {userName}! I'm your Cybersecurity Awareness Assistant.");
+            Console.WriteLine($"\nHi There, {userName}! I am your Cybersecurity Awareness Assistant.");
             Console.ResetColor();
 
             // Display initial help message
@@ -45,7 +45,7 @@ namespace ChatBot
                 {
                     continueChat = false;
                     Console.ForegroundColor = ConsoleColor.Magenta;
-                    Console.WriteLine("\nGoodbye! Stay safe online!");
+                    Console.WriteLine("\nGoodbye! stay safe online!");
                     Console.ResetColor();
                     continue;
                 }
@@ -116,7 +116,7 @@ namespace ChatBot
             catch (Exception ex)
             {
                 Console.WriteLine("Couldn't play voice greeting: " + ex.Message);
-                Console.WriteLine("Make sure 'greeting.wav' exists in the application folder.");
+                Console.WriteLine("Make sure 'greeting.wav' exists in the main application folder.");
             }
         }
 
