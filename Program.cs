@@ -171,7 +171,7 @@ namespace ChatBot
             {
                 return "For safe browsing:\n" +
                        "✓ Use HTTPS websites (look for the padlock icon)\n" +
-                       "✓ Keep your browser updated\n" +
+                       "✓ Keep your web-browser updated\n" +
                        "✓ Avoid public Wi-Fi for sensitive tasks\n" +
                        "✓ Use a VPN if possible\n\n" +
                        "I can provide more details about any of these (see 'help').";
