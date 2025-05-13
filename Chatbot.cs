@@ -12,7 +12,7 @@ namespace Chatbot
         private readonly List<string> _howAreYouResponses = new();
         private readonly List<string> _purposeResponses = new();
         private readonly HashSet<string> _knownUsers = new();
-        private readonly Dictionary<string, string> _sentimentResponses = new();
+        private readonly Dictionary<string, List<string>> _sentimentResponses = new();
         private readonly List<string> _detectedSentiments = new();
         private string _lastTopic = "";
 
@@ -47,14 +47,61 @@ namespace Chatbot
                 "Let's keep things secure—try asking about digital threats or online safety tips."
             });
 
-            _sentimentResponses["worried"] = "It's completely understandable to feel worried. Cyber threats can be overwhelming, but I’m here to help you stay informed and safe.";
-            _sentimentResponses["frustrated"] = "Frustration is natural when dealing with cybersecurity issues. Let’s tackle this together step by step.";
-            _sentimentResponses["curious"] = "Curiosity is the first step to becoming cyber smart! Ask me anything, and I’ll do my best to explain.";
-            _sentimentResponses["scared"] = "It's okay to feel scared—cyber threats are real, but with the right knowledge, you can defend yourself.";
-            _sentimentResponses["confused"] = "Confusion is part of learning. I’ll break down any cybersecurity topic you need help with.";
-            _sentimentResponses["anxious"] = "Many people feel anxious about staying safe online. Let's explore some easy steps to reduce that anxiety.";
-            _sentimentResponses["excited"] = "That’s awesome! Cybersecurity is a fascinating world—let’s dive into it together.";
-            _sentimentResponses["angry"] = "dont get angry at me, maybe if you learn more about Cybersecurity youll calm down. ";
+            _sentimentResponses["worried"] = new List<string>
+            {
+                "It's completely understandable to feel worried. Cyber threats can be overwhelming, but I’m here to help you stay informed and safe.",
+                "Don't worry—many people feel the same way. Let's tackle cybersecurity one step at a time.",
+                "Worrying shows you care about your safety, and that's a great first step!"
+            };
+
+            _sentimentResponses["frustrated"] = new List<string>
+            {
+                "Frustration is natural when dealing with cybersecurity issues. Let’s tackle this together step by step.",
+                "Cybersecurity can be complex, but don't give up—I'm here to make it simpler.",
+                "Take a breath—together we’ll make sense of these digital threats."
+            };
+
+            _sentimentResponses["curious"] = new List<string>
+            {
+                "Curiosity is the first step to becoming cyber smart! Ask me anything, and I’ll do my best to explain.",
+                "That's great! Being curious means you're open to learning and growth.",
+                "Curious minds make the best defenders. What would you like to know?"
+            };
+
+            _sentimentResponses["scared"] = new List<string>
+            {
+                "It's okay to feel scared—cyber threats are real, but with the right knowledge, you can defend yourself.",
+                "You’re not alone. Let’s walk through some ways to feel more secure online.",
+                "Fear is natural, but knowledge is power. I’m here to help you become confident."
+            };
+
+            _sentimentResponses["confused"] = new List<string>
+            {
+                "Confusion is part of learning. I’ll break down any cybersecurity topic you need help with.",
+                "Let’s simplify it together. What’s got you confused?",
+                "No worries—every expert was once confused too. Let me help clarify things."
+            };
+
+            _sentimentResponses["anxious"] = new List<string>
+            {
+                "Many people feel anxious about staying safe online. Let's explore some easy steps to reduce that anxiety.",
+                "Anxiety fades with understanding. I’m here to guide you through the essentials.",
+                "Cyber threats can feel overwhelming, but small steps make a big difference."
+            };
+
+            _sentimentResponses["excited"] = new List<string>
+            {
+                "That’s awesome! Cybersecurity is a fascinating world—let’s dive into it together.",
+                "Excitement is contagious! Let’s explore something cool in cybersecurity.",
+                "Glad to see your enthusiasm! What would you like to learn first?"
+            };
+
+            _sentimentResponses["angry"] = new List<string>
+            {
+                "Don't get angry at me! Maybe learning more about cybersecurity will calm you down.",
+                "I sense some frustration—let’s turn that energy into learning something powerful.",
+                "Anger is okay—just don’t take it out on the keyboard. Let’s channel it into understanding threats."
+            };
 
             _keywordResponses["password"] = new List<string>
 {
@@ -245,12 +292,15 @@ namespace Chatbot
                 if (lowerInput.Contains(sentiment))
                 {
                     _detectedSentiments.Add(sentiment);
-                    DisplayResponse(_sentimentResponses[sentiment]);
+                    var responses = _sentimentResponses[sentiment];
+                    var random = new Random();
+                    var response = responses[random.Next(responses.Count)];
+                    DisplayResponse(response);
                     return;
                 }
             }
 
-            // Keyword responses
+            // Keyword detection
             foreach (var keyword in _keywordResponses.Keys)
             {
                 if (lowerInput.Contains(keyword))
