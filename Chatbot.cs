@@ -12,6 +12,8 @@ namespace Chatbot
         private readonly List<string> _howAreYouResponses = new();
         private readonly List<string> _purposeResponses = new();
         private readonly HashSet<string> _knownUsers = new();
+        private readonly Dictionary<string, string> _sentimentResponses = new();
+        private readonly List<string> _detectedSentiments = new();
         private string _lastTopic = "";
 
         public Chatbot()
@@ -44,6 +46,15 @@ namespace Chatbot
                 "Cybersecurity is my thing—maybe you'd like to learn about passwords or scams?",
                 "Let's keep things secure—try asking about digital threats or online safety tips."
             });
+
+            _sentimentResponses["worried"] = "It's completely understandable to feel worried. Cyber threats can be overwhelming, but I’m here to help you stay informed and safe.";
+            _sentimentResponses["frustrated"] = "Frustration is natural when dealing with cybersecurity issues. Let’s tackle this together step by step.";
+            _sentimentResponses["curious"] = "Curiosity is the first step to becoming cyber smart! Ask me anything, and I’ll do my best to explain.";
+            _sentimentResponses["scared"] = "It's okay to feel scared—cyber threats are real, but with the right knowledge, you can defend yourself.";
+            _sentimentResponses["confused"] = "Confusion is part of learning. I’ll break down any cybersecurity topic you need help with.";
+            _sentimentResponses["anxious"] = "Many people feel anxious about staying safe online. Let's explore some easy steps to reduce that anxiety.";
+            _sentimentResponses["excited"] = "That’s awesome! Cybersecurity is a fascinating world—let’s dive into it together.";
+            _sentimentResponses["angry"] = "dont get angry at me, maybe if you learn more about Cybersecurity youll calm down. ";
 
             _keywordResponses["password"] = new List<string>
 {
@@ -101,8 +112,6 @@ namespace Chatbot
     "When browsing online, look for HTTPS in the address bar. The 'S' stands for 'secure' and means that encryption is being used to protect the connection between your browser and the website. Avoid entering personal information on sites that do not use HTTPS."
 };
 
-
-            // Initialize cycling indexes
             foreach (var key in _keywordResponses.Keys)
                 _keywordResponseIndex[key] = 0;
         }
@@ -173,6 +182,34 @@ namespace Chatbot
                 return;
             }
 
+            if (lowerInput.Contains("i'm interested in") || lowerInput.Contains("i am interested in"))
+            {
+                var interest = input.Substring(input.IndexOf("interested in") + "interested in".Length).Trim();
+                if (!string.IsNullOrWhiteSpace(interest))
+                {
+                    _userMemory["interest"] = interest;
+                    DisplayResponse($"Great! I'll remember that you're interested in {interest}. It's an important part of staying cyber safe.");
+                }
+                else
+                {
+                    DisplayResponse("Can you tell me what topic you're interested in?");
+                }
+                return;
+            }
+
+            if (lowerInput.Contains("what do you remember") || lowerInput.Contains("what have you remembered"))
+            {
+                if (_userMemory.TryGetValue("interest", out var rememberedInterest))
+                {
+                    DisplayResponse($"You mentioned you’re interested in {rememberedInterest}. Would you like to explore more about it?");
+                }
+                else
+                {
+                    DisplayResponse("I don't have any interests stored for you yet. Tell me what you'd like to learn about.");
+                }
+                return;
+            }
+
             if (lowerInput.Contains("is that all") || lowerInput.Contains("anything else"))
             {
                 if (!string.IsNullOrEmpty(_lastTopic) && _keywordResponses.ContainsKey(_lastTopic))
@@ -202,6 +239,18 @@ namespace Chatbot
                 return;
             }
 
+            // Sentiment Detection
+            foreach (var sentiment in _sentimentResponses.Keys)
+            {
+                if (lowerInput.Contains(sentiment))
+                {
+                    _detectedSentiments.Add(sentiment);
+                    DisplayResponse(_sentimentResponses[sentiment]);
+                    return;
+                }
+            }
+
+            // Keyword responses
             foreach (var keyword in _keywordResponses.Keys)
             {
                 if (lowerInput.Contains(keyword))
@@ -233,6 +282,8 @@ You can ask me about the following cybersecurity topics:
 
 Other commands:
 - 'my name is [name]' — I'll remember your name
+- 'i'm interested in [topic]' — I'll remember your interests
+- 'what do you remember' — I’ll recall your saved interest
 - 'remember me' — Check if I remember you
 - 'is that all?' — Get more information on the last topic
 - 'help' — Show this help menu
