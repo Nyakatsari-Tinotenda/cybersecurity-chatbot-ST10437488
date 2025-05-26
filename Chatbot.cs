@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Chatbot
 {
@@ -15,6 +16,9 @@ namespace Chatbot
         private readonly Dictionary<string, List<string>> _sentimentResponses = new();
         private readonly List<string> _detectedSentiments = new();
         private string _lastTopic = "";
+        private int _typingSpeed = 30;
+        private bool _awaitingInterestConfirmation = false;
+        private string _currentInput = "";
 
         public Chatbot()
         {
@@ -42,7 +46,7 @@ namespace Chatbot
             _defaultResponses.AddRange(new[]
             {
                 "I'm not sure I follow. Could you ask something related to cybersecurity?",
-                "That’s outside my training. Try asking about phishing, malware, firewalls, or data protection.",
+                "That's outside my training. Try asking about phishing, malware, firewalls, or data protection.",
                 "Cybersecurity is my thing—maybe you'd like to learn about passwords or scams?",
                 "Let's keep things secure—try asking about digital threats or online safety tips."
             });
@@ -151,18 +155,37 @@ namespace Chatbot
     "Training and awareness are key. Educate yourself and others about social engineering tactics. Regular simulated phishing tests in workplaces and ongoing cybersecurity training can significantly reduce the risk of falling victim to social engineering."
 };
 
-            _keywordResponses["encryption"] = new List<string>
-{
-    "Encryption converts data into unreadable code that can only be deciphered with the correct decryption key. It is essential for protecting sensitive information during storage and transmission, ensuring that even if data is intercepted, it cannot be understood by unauthorized users.",
-    "Many communication apps use end-to-end encryption, which means that only you and the recipient can read the messages. Not even the service provider can access the content. Always choose platforms that offer strong encryption for your private conversations.",
-    "Encrypting your hard drive or files adds an extra layer of protection in case your device is lost or stolen. Tools like BitLocker (Windows) or FileVault (macOS) offer built-in encryption options that are simple to activate.",
-    "When browsing online, look for HTTPS in the address bar. The 'S' stands for 'secure' and means that encryption is being used to protect the connection between your browser and the website. Avoid entering personal information on sites that do not use HTTPS."
-};
-
             foreach (var key in _keywordResponses.Keys)
                 _keywordResponseIndex[key] = 0;
         }
 
+        private void PrintWithEffect(string text)
+        {
+            foreach (char c in text)
+            {
+                Console.Write(c);
+                Thread.Sleep(_typingSpeed);
+
+                if (new Random().Next(10) > 7)
+                {
+                    Thread.Sleep(_typingSpeed * 2);
+                }
+            }
+            Console.WriteLine();
+        }
+
+        protected new void DisplayResponse(string response)
+        {
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            PrintWithEffect("\n=== Cybersecurity Bot ===");
+            Console.ResetColor();
+
+            PrintWithEffect(response);
+
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            PrintWithEffect("\n________________________\n");
+            Console.ResetColor();
+        }
         public override void GreetUser()
         {
             PlayWelcomeSound();
@@ -188,14 +211,17 @@ namespace Chatbot
                 DisplayResponse("Hello! I'm here to help you with cybersecurity. What's your name?");
             }
 
-            Console.WriteLine("(Type 'help' for available commands, or 'exit' to quit)");
+            PrintWithEffect("(Type 'help' for available commands, or 'exit' to quit)");
         }
+
 
         public override void ProcessInput(string input)
         {
+            _currentInput = input;
+
             if (string.IsNullOrWhiteSpace(input))
             {
-                DisplayResponse("I didn’t catch that. Could you type it again?");
+                DisplayResponse("I didn't catch that. Could you type it again?");
                 return;
             }
 
@@ -207,6 +233,73 @@ namespace Chatbot
                 return;
             }
 
+            // Move interest handling before sentiment handling
+            if (HandleMemoryRecall(lowerInput))
+                return;
+
+            if (_awaitingInterestConfirmation)
+            {
+                HandleInterestConfirmation(lowerInput);
+                return;
+            }
+
+            if (HandleSentimentResponses(lowerInput))
+                return;
+
+            if (HandleNameCommands(input, lowerInput))
+                return;
+
+            if (HandleAdditionalInformationRequests(lowerInput))
+                return;
+
+            if (HandleGeneralQuestions(lowerInput))
+                return;
+
+            if (HandleKeywordDetection(lowerInput))
+                return;
+
+            DisplayResponse(GetRandomResponse(_defaultResponses));
+        }
+
+        private bool HandleSentimentResponses(string lowerInput)
+        {
+            if (lowerInput.Contains("tired") || lowerInput.Contains("exhausted") ||
+                lowerInput.Contains("fatigued") || lowerInput.Contains("sleepy"))
+            {
+                DisplayResponse("Cybersecurity is important, but so is your wellbeing. " +
+                    "Maybe take a short break? You can always come back later to learn more.\n" +
+                    "Would you like to continue or take a break? (Type 'continue' or 'break')");
+                return true;
+            }
+
+            if (lowerInput.Contains("break") || lowerInput.Contains("rest"))
+            {
+                DisplayResponse("That's a great idea! Taking regular breaks improves learning. " +
+                    "I'll be here when you're ready to continue. Type 'exit' to quit or just close the window.");
+                return true;
+            }
+
+            if (lowerInput.Contains("continue") || lowerInput.Contains("keep going"))
+            {
+                DisplayResponse("Great! Let's keep learning. What would you like to know about next?");
+                return true;
+            }
+
+            foreach (var sentiment in _sentimentResponses.Keys)
+            {
+                if (lowerInput.Contains(sentiment))
+                {
+                    _detectedSentiments.Add(sentiment);
+                    var response = GetRandomResponse(_sentimentResponses[sentiment]);
+                    DisplayResponse(response);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool HandleNameCommands(string input, string lowerInput)
+        {
             if (lowerInput.StartsWith("my name is "))
             {
                 var name = input.Substring("my name is ".Length).Trim();
@@ -215,49 +308,102 @@ namespace Chatbot
                     UserName = name;
                     _userMemory["name"] = name;
                     _knownUsers.Add(name.ToLower());
-                    DisplayResponse($"Got it! I’ll remember your name is {name}.");
+                    DisplayResponse($"Got it! I'll remember your name is {name}.");
                 }
-                return;
+                return true;
             }
 
             if (lowerInput.Contains("remember me") || lowerInput.Contains("my name"))
             {
                 if (_userMemory.TryGetValue("name", out var name))
-                    DisplayResponse($"Of course, {name}. I haven’t forgotten you!");
+                    DisplayResponse($"Of course, {name}. I haven't forgotten you!");
                 else
                     DisplayResponse("I don't seem to have your name yet. What should I call you?");
-                return;
+                return true;
             }
+            return false;
+        }
 
-            if (lowerInput.Contains("i'm interested in") || lowerInput.Contains("i am interested in"))
+        private void HandleInterestConfirmation(string lowerInput)
+        {
+            _awaitingInterestConfirmation = false;
+
+            if (lowerInput.Contains("yes") || lowerInput.Contains("yeah") || lowerInput.Contains("sure"))
             {
-                var interest = input.Substring(input.IndexOf("interested in") + "interested in".Length).Trim();
-                if (!string.IsNullOrWhiteSpace(interest))
+                if (_userMemory.TryGetValue("interest", out var rememberedInterest))
                 {
-                    _userMemory["interest"] = interest;
-                    DisplayResponse($"Great! I'll remember that you're interested in {interest}. It's an important part of staying cyber safe.");
+                    var lowerInterest = rememberedInterest.ToLower();
+                    if (_keywordResponses.ContainsKey(lowerInterest))
+                    {
+                        var index = _keywordResponseIndex[lowerInterest];
+                        DisplayResponse(_keywordResponses[lowerInterest][index]);
+                        _keywordResponseIndex[lowerInterest] = (index + 1) % _keywordResponses[lowerInterest].Count;
+                        _lastTopic = lowerInterest;
+                    }
+                    else
+                    {
+                        DisplayResponse($"Actually, I don't have specific information about {rememberedInterest}. " +
+                            "Would you like to learn about something else?");
+                        DisplayResponse("Available topics: passwords, phishing, malware, firewalls, VPN, social engineering");
+                    }
                 }
-                else
-                {
-                    DisplayResponse("Can you tell me what topic you're interested in?");
-                }
-                return;
             }
+            else if (lowerInput.Contains("no") || lowerInput.Contains("not now") || lowerInput.Contains("later"))
+            {
+                DisplayResponse("No problem! Here are some other topics you might find interesting:");
+                DisplayResponse("- Passwords\n- Phishing\n- Malware\n- VPNs\n- Social engineering");
+                DisplayResponse("Which one would you like to learn about?");
+            }
+            else
+            {
+                DisplayResponse("I didn't quite understand. Please answer with 'yes' or 'no'.");
+                _awaitingInterestConfirmation = true;
+            }
+        }
 
+        private bool HandleMemoryRecall(string lowerInput)
+        {
             if (lowerInput.Contains("what do you remember") || lowerInput.Contains("what have you remembered"))
             {
                 if (_userMemory.TryGetValue("interest", out var rememberedInterest))
                 {
-                    DisplayResponse($"You mentioned you’re interested in {rememberedInterest}. Would you like to explore more about it?");
+                    DisplayResponse($"You mentioned you're interested in {rememberedInterest}. Would you like to learn more about this topic?");
+                    _awaitingInterestConfirmation = true;
                 }
                 else
                 {
-                    DisplayResponse("I don't have any interests stored for you yet. Tell me what you'd like to learn about.");
+                    DisplayResponse("I don't have any interests stored for you yet. Tell me what you'd like to learn about " +
+                        "(e.g., 'I'm interested in malware') or ask about these topics:");
+                    DisplayResponse("- Passwords\n- Phishing\n- Firewalls\n- VPNs\n- Social engineering");
                 }
-                return;
+                return true;
             }
 
-            if (lowerInput.Contains("is that all") || lowerInput.Contains("anything else"))
+            if (lowerInput.Contains("i'm interested in") || lowerInput.Contains("i am interested in"))
+            {
+                var interest = _currentInput.Substring(_currentInput.IndexOf("interested in", StringComparison.OrdinalIgnoreCase)
+                    + "interested in".Length).Trim();
+                if (!string.IsNullOrWhiteSpace(interest))
+                {
+                    _userMemory["interest"] = interest;
+                    DisplayResponse($"Great! I'll remember that you're interested in {interest}. " +
+                        $"Would you like to learn about {interest} now?");
+                    _awaitingInterestConfirmation = true;
+                }
+                else
+                {
+                    DisplayResponse("Can you tell me what topic you're interested in? For example: " +
+                        "'I'm interested in phishing' or 'I want to learn about firewalls'");
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool HandleAdditionalInformationRequests(string lowerInput)
+        {
+            if (lowerInput.Contains("is that all") || lowerInput.Contains("anything else") ||
+                lowerInput.Contains("more about") || lowerInput.Contains("tell me more"))
             {
                 if (!string.IsNullOrEmpty(_lastTopic) && _keywordResponses.ContainsKey(_lastTopic))
                 {
@@ -265,42 +411,37 @@ namespace Chatbot
                     var index = _keywordResponseIndex[_lastTopic];
                     DisplayResponse(responses[index]);
                     _keywordResponseIndex[_lastTopic] = (index + 1) % responses.Count;
-                    return;
+                    return true;
                 }
                 else
                 {
-                    DisplayResponse("Let’s start with a topic! Ask me about malware, phishing, VPNs, and more.");
-                    return;
+                    DisplayResponse("Let me suggest some topics! You can ask about:");
+                    DisplayResponse("- Password security\n- Phishing attacks\n- Malware protection\n- VPN benefits");
+                    DisplayResponse("Which one interests you?");
+                    return true;
                 }
             }
+            return false;
+        }
 
+        private bool HandleGeneralQuestions(string lowerInput)
+        {
             if (lowerInput.Contains("how are you"))
             {
                 DisplayResponse(GetRandomResponse(_howAreYouResponses));
-                return;
+                return true;
             }
 
             if (lowerInput.Contains("purpose") || lowerInput.Contains("what do you do"))
             {
                 DisplayResponse(GetRandomResponse(_purposeResponses));
-                return;
+                return true;
             }
+            return false;
+        }
 
-            // Sentiment Detection
-            foreach (var sentiment in _sentimentResponses.Keys)
-            {
-                if (lowerInput.Contains(sentiment))
-                {
-                    _detectedSentiments.Add(sentiment);
-                    var responses = _sentimentResponses[sentiment];
-                    var random = new Random();
-                    var response = responses[random.Next(responses.Count)];
-                    DisplayResponse(response);
-                    return;
-                }
-            }
-
-            // Keyword detection
+        private bool HandleKeywordDetection(string lowerInput)
+        {
             foreach (var keyword in _keywordResponses.Keys)
             {
                 if (lowerInput.Contains(keyword))
@@ -311,11 +452,10 @@ namespace Chatbot
 
                     _lastTopic = keyword;
                     _keywordResponseIndex[keyword] = (index + 1) % _keywordResponses[keyword].Count;
-                    return;
+                    return true;
                 }
             }
-
-            DisplayResponse(GetRandomResponse(_defaultResponses));
+            return false;
         }
 
         public override void DisplayHelp()
@@ -333,13 +473,18 @@ You can ask me about the following cybersecurity topics:
 Other commands:
 - 'my name is [name]' — I'll remember your name
 - 'i'm interested in [topic]' — I'll remember your interests
-- 'what do you remember' — I’ll recall your saved interest
+- 'what do you remember' — I'll recall your saved interest
 - 'remember me' — Check if I remember you
 - 'is that all?' — Get more information on the last topic
 - 'help' — Show this help menu
 - 'exit' or 'quit' — End the chat
 ";
             DisplayResponse(helpText);
+        }
+
+        private string GetRandomResponse(List<string> responses)
+        {
+            return responses[new Random().Next(responses.Count)];
         }
     }
 }
