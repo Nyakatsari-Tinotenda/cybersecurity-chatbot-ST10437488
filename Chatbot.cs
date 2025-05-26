@@ -19,6 +19,7 @@ namespace Chatbot
         private int _typingSpeed = 30;
         private bool _awaitingInterestConfirmation = false;
         private string _currentInput = "";
+        private readonly List<string> _affirmativeResponses = new();
 
         public Chatbot()
         {
@@ -27,6 +28,18 @@ namespace Chatbot
 
         private void InitializeResponses()
         {
+            _affirmativeResponses.AddRange(new[]
+           {
+                "You're welcome! Feel free to ask more questions.",
+                "No problem at all!",
+                "Always here to help with your cybersecurity questions.",
+                "I'm just doing my job to keep you informed.",
+                "Happy to assist! What else would you like to know?",
+                "Glad I could help. Don't hesitate to ask more.",
+                "Anytime! Cybersecurity is my specialty.",
+                "Of course! Let me know if you have other questions."
+            });
+
             _howAreYouResponses.AddRange(new[]
             {
                 "I'm operating at full capacity, scanning threats and educating minds!",
@@ -232,8 +245,9 @@ namespace Chatbot
                 DisplayHelp();
                 return;
             }
+            if (HandleAffirmativeResponses(lowerInput))
+                return;
 
-            // Move interest handling before sentiment handling
             if (HandleMemoryRecall(lowerInput))
                 return;
 
@@ -395,6 +409,20 @@ namespace Chatbot
                     DisplayResponse("Can you tell me what topic you're interested in? For example: " +
                         "'I'm interested in phishing' or 'I want to learn about firewalls'");
                 }
+                return true;
+            }
+            return false;
+        }
+
+        private bool HandleAffirmativeResponses(string lowerInput)
+        {
+            if (lowerInput == "thanks" || lowerInput == "thank you" ||
+                lowerInput == "thx" || lowerInput == "ty" ||
+                lowerInput == "ok" || lowerInput == "okay" ||
+                lowerInput == "k" || lowerInput == "cool" ||
+                lowerInput == "got it" || lowerInput == "awesome")
+            {
+                DisplayResponse(GetRandomResponse(_affirmativeResponses));
                 return true;
             }
             return false;
